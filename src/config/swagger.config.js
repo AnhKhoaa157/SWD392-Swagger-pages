@@ -12,12 +12,18 @@ const options = {
                 email: 'support@example.com'
             }
         },
+        // 👇 QUAN TRỌNG: Đã thêm link Render vào đây 👇
         servers: [
             {
+                url: 'https://swd392-swagger-pages.onrender.com', 
+                description: 'Production Server (Render)'
+            },
+            {
                 url: 'http://localhost:3000',
-                description: 'Development server'
+                description: 'Development Server (Local)'
             }
         ],
+        // 👆 Hết phần sửa 👆
         tags: [
             {
                 name: 'Authentication',
