@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SWD392 API</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 60px 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+    }
+    
+    h1 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 2.5em;
+    }
+    
+    .subtitle {
+      color: #888;
+      font-size: 1.1em;
+      margin-bottom: 30px;
+    }
+    
+    .status {
+      display: inline-block;
+      background: #10b981;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-weight: bold;
+      margin-bottom: 30px;
+      font-size: 0.9em;
+    }
+    
+    .description {
+      color: #666;
+      line-height: 1.8;
+      margin-bottom: 40px;
+      padding: 0 20px;
+    }
+    
+    .btn {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 15px 40px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1.1em;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+      background: #5568d3;
+    }
+
+    .features {
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 1px solid #eee;
+    }
+
+    .features ul {
+      list-style: none;
+      color: #666;
+      text-align: left;
+      display: inline-block;
+    }
+
+    .features li {
+      padding: 8px 0;
+      font-size: 0.95em;
+    }
+
+    .features li:before {
+      content: "✓ ";
+      color: #10b981;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 SWD392 Backend API</h1>
+    <div class="subtitle">RESTful API with Authentication & Authorization</div>
+    <div class="status">● Server Running</div>
+    
+    <p class="description">
+      A professional REST API built with Node.js, Express, MongoDB, and JWT authentication.
+      Explore the complete API documentation using Swagger UI.
+    </p>
+    
+    <a href="/api-docs" class="btn">📚 View API Documentation</a>
+
+    <div class="features">
+      <ul>
+        <li>JWT Authentication (Access + Refresh Tokens)</li>
+        <li>Role-Based Authorization (User & Admin)</li>
+        <li>MongoDB with Mongoose ODM</li>
+        <li>Service Layer Architecture</li>
+        <li>Comprehensive API Documentation</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
