@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const jwtConfig = require('../config/jwt.config');
-const User = require('../models/user.model');
+const { User } = require('../models');
 const MSG = require('../constants/messages');
 
 /**
@@ -29,8 +29,8 @@ const authenticate = async (req, res, next) => {
                 });
             }
 
-            // Get user from database
-            const user = await User.findById(decoded.userId);
+            // Get user from database (Sequelize syntax)
+            const user = await User.findByPk(decoded.userId);
             if (!user) {
                 return res.status(404).json({
                     success: false,
@@ -39,7 +39,7 @@ const authenticate = async (req, res, next) => {
             }
 
             // Attach user to request
-            req.user = user;
+            req.user = decoded; // Attach decoded token data (includes userId, email, role)
             next();
         });
     } catch (error) {
@@ -64,7 +64,11 @@ const authorize = (...roles) => {
             });
         }
 
-        if (!roles.includes(req.user.role)) {
+        // Normalize roles to handle case-insensitive comparison
+        const userRoleLower = req.user.role.toLowerCase();
+        const allowedRoles = roles.map(r => r.toLowerCase());
+
+        if (!allowedRoles.includes(userRoleLower)) {
             return res.status(403).json({
                 success: false,
                 message: MSG.AUTHORIZATION.FORBIDDEN

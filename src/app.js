@@ -4,8 +4,8 @@ const morgan = require('morgan');
 const path = require('path');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger.config');
-const connectDB = require('./config/database.config');
-const User = require('./models/user.model');
+const { sequelize, testConnection, User } = require('./models');
+const { Op } = require('sequelize');
 
 // Import routes
 const apiRoutes = require('./routes/api.routes');
@@ -13,9 +13,41 @@ const apiRoutes = require('./routes/api.routes');
 // Create Express app
 const app = express();
 
-// Connect to MongoDB and initialize default admin
-connectDB().then(() => {
-    User.createDefaultAdmin();
+// Connect to MySQL and create default admin
+testConnection().then(async () => {
+    // Sync database (optional - use migrations in production)
+    // await sequelize.sync({ alter: true });
+
+    // Create default admin from environment variables
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@gmail.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+
+    try {
+        const adminExists = await User.findOne({ where: { email: adminEmail } });
+        if (!adminExists) {
+            await User.create({
+                fullName: 'System Administrator',
+                email: adminEmail,
+                passwordHash: adminPassword, // Will be hashed via hook
+                role: 'Admin',
+                isEmailVerified: true, // Admin account is pre-verified
+                isOnline: false, // Default to offline, will be online after login
+                status: 'Offline'
+            });
+            console.log(`✅ Default admin created: ${adminEmail} / ${adminPassword}`);
+        } else if (!adminExists.isEmailVerified) {
+            // Update existing admin if not verified (from previous migrations)
+            adminExists.isEmailVerified = true;
+            await adminExists.save();
+            console.log(`✅ Existing admin email verified: ${adminEmail}`);
+        } else {
+            console.log(`ℹ️  Admin already exists: ${adminEmail}`);
+        }
+    } catch (err) {
+        console.error('❌ Failed to create default admin:', err.message);
+    }
+}).catch(err => {
+    console.error('❌ Database connection failed:', err);
 });
 
 
@@ -25,11 +57,7 @@ const corsOptions = {
     origin: [
         'http://localhost:5173',
         'http://localhost:5174',
-        'http://localhost:5175',
-        // Vercel deployment URLs
-        'https://swd392-vercel-5nbv44620-2imanhkhoas-projects.vercel.app',
-        process.env.FRONTEND_URL || 'https://swd392-front-end.vercel.app',
-        /^https:\/\/.*\.vercel\.app$/ // Allow all Vercel preview deployments
+        'http://localhost:5175'
     ],
     credentials: true,
     optionsSuccessStatus: 200
@@ -60,6 +88,25 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api', apiRoutes);
+
+// Auto-offline cron job: mỗi 60s, ai lastSeenAt > 3 phút → Offline
+setInterval(async () => {
+    try {
+        const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
+        const [count] = await User.update(
+            { status: 'Offline', isOnline: false },
+            {
+                where: {
+                    isOnline: true,
+                    lastSeenAt: { [Op.lt]: threeMinutesAgo }
+                }
+            }
+        );
+        if (count > 0) console.log(`🔴 Auto-offline: ${count} user(s) set to Offline`);
+    } catch (err) {
+        console.error('❌ Auto-offline cron error:', err.message);
+    }
+}, 60 * 1000);
 
 // 404 handler
 app.use((req, res) => {

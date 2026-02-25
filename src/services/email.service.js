@@ -24,19 +24,6 @@ class EmailService {
      * @param {string} name - User name
      */
     async sendOTP(email, otp, name) {
-        // FOR DEVELOPMENT: Print OTP to console if email not configured
-        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD || process.env.EMAIL_USER === 'your-email@gmail.com') {
-            console.log('\n' + '='.repeat(60));
-            console.log('📧 OTP EMAIL - REGISTRATION (Development Mode)');
-            console.log('='.repeat(60));
-            console.log(`📨 To: ${email}`);
-            console.log(`👤 Name: ${name}`);
-            console.log(`🔑 OTP Code: ${otp}`);
-            console.log(`⏰ Expires in: ${process.env.OTP_EXPIRE_MINUTES || 10} minutes`);
-            console.log('='.repeat(60) + '\n');
-            return { success: true, messageId: 'dev-mode' };
-        }
-
         const mailOptions = {
             from: `"SWD392 System" <${process.env.EMAIL_FROM}>`,
             to: email,
@@ -51,7 +38,7 @@ class EmailService {
                         <h1 style="color: #4CAF50; letter-spacing: 5px; margin: 0;">${otp}</h1>
                     </div>
                     
-                    <p>This OTP will expire in ${process.env.OTP_EXPIRE_MINUTES || 1} minutes.</p>
+                    <p>This OTP will expire in ${process.env.OTP_EXPIRE_MINUTES || 1} minute${process.env.OTP_EXPIRE_MINUTES == 1 ? '' : 's'}.</p>
                     
                     <p style="color: #666; font-size: 12px;">
                         If you didn't create an account, please ignore this email.
@@ -82,19 +69,6 @@ class EmailService {
      * @param {string} name - User name
      */
     async sendPasswordResetOTP(email, otp, name) {
-        // FOR DEVELOPMENT: Print OTP to console if email not configured
-        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD || process.env.EMAIL_USER === 'your-email@gmail.com') {
-            console.log('\n' + '='.repeat(60));
-            console.log('🔐 PASSWORD RESET OTP (Development Mode)');
-            console.log('='.repeat(60));
-            console.log(`📨 To: ${email}`);
-            console.log(`👤 Name: ${name}`);
-            console.log(`🔑 OTP Code: ${otp}`);
-            console.log(`⏰ Expires in: ${process.env.OTP_EXPIRE_MINUTES || 10} minutes`);
-            console.log('='.repeat(60) + '\n');
-            return { success: true, messageId: 'dev-mode' };
-        }
-
         const mailOptions = {
             from: `"SWD392 System" <${process.env.EMAIL_FROM}>`,
             to: email,
@@ -109,7 +83,7 @@ class EmailService {
                         <h1 style="color: #FF5722; letter-spacing: 5px; margin: 0;">${otp}</h1>
                     </div>
                     
-                    <p>This OTP will expire in ${process.env.OTP_EXPIRE_MINUTES || 10} minutes.</p>
+                    <p>This OTP will expire in ${process.env.OTP_EXPIRE_MINUTES || 10} minute${process.env.OTP_EXPIRE_MINUTES == 1 ? '' : 's'}.</p>
                     
                     <p style="color: #666; font-size: 12px;">
                         If you didn't request a password reset, please ignore this email and your password will remain unchanged.
@@ -140,14 +114,14 @@ class EmailService {
      */
     async sendWelcomeEmail(email, name) {
         const mailOptions = {
-            from: `"SWD392 System" <${process.env.EMAIL_FROM}>`,
+            from: `"SWDHubs System" <${process.env.EMAIL_FROM}>`,
             to: email,
-            subject: 'Welcome to SWD392!',
+            subject: 'Welcome to SWDHubs!',
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #333;">Welcome to SWD392!</h2>
+                    <h2 style="color: #333;">Welcome to SWDHubs!</h2>
                     <p>Hi ${name},</p>
-                    <p>Your email has been successfully verified. You can now access all features of the SWD392 System.</p>
+                    <p>Your email has been successfully verified. You can now access all features of the SWDHubs System.</p>
                     
                     <p>Happy learning!</p>
                     

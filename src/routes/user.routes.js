@@ -216,6 +216,60 @@ router.put('/:id', authenticate, userController.updateUser);
 
 /**
  * @swagger
+ * /api/users/{id}/role:
+ *   patch:
+ *     summary: Update user role (Admin only)
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID (UUID)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - role
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [Student, Lecturer, Admin]
+ *                 example: Lecturer
+ *                 description: New role for the user
+ *     responses:
+ *       200:
+ *         description: User role updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Bad request - invalid role
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - admin access required
+ *       404:
+ *         description: User not found
+ */
+router.patch('/:id/role', authenticate, authorize('admin'), userController.updateUserRole);
+
+/**
+ * @swagger
  * /api/users/{id}:
  *   delete:
  *     summary: Delete user (Admin only)
