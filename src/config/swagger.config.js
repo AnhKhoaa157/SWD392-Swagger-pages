@@ -36,6 +36,38 @@ const options = {
             {
                 name: 'Admin Management',
                 description: '👨‍💼 Admin-only user CRUD operations'
+            },
+            {
+                name: 'Semesters',
+                description: '📅 Academic semester management'
+            },
+            {
+                name: 'Classes',
+                description: '🏫 Class management (Manager creates, Lecturer teaches)'
+            },
+            {
+                name: 'Topics',
+                description: '📋 Project/Topic management (Lecturer proposes → Manager approves → Groups register)'
+            },
+            {
+                name: 'Groups',
+                description: '👥 Student group management (self-created groups for collaboration)'
+            },
+            {
+                name: 'Questions',
+                description: '❓ Q&A Questions (Student ask → Lecturer/Manager answer or escalate to manager)'
+            },
+            {
+                name: 'Answers',
+                description: '💬 Answers to questions (Lecturer/Manager responses)'
+            },
+            {
+                name: 'Tasks',
+                description: '✅ Group task board (Student-owned CRUD, Lecturer visibility)'
+            },
+            {
+                name: 'Submissions',
+                description: '📤 Assignment submissions and grading'
             }
         ],
         components: {
