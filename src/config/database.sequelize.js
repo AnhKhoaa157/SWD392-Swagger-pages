@@ -14,6 +14,11 @@ const sequelize = new Sequelize(
         port: process.env.DB_PORT || 3306,
         dialect: 'mysql',
         logging: process.env.NODE_ENV === 'development' ? console.log : false,
+        dialectOptions: {
+            charset: 'utf8mb4',
+            supportBigNumbers: true,
+            bigNumberStrings: true
+        },
         pool: {
             max: 10,
             min: 0,

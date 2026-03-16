@@ -16,55 +16,73 @@ class AuthService {
      * @returns {Object} - Message to check email
      */
     async registerUser(userData) {
-        const { studentCode, fullName, email, password } = userData;
-
-        // Check if student code already exists (if provided)
-        if (studentCode) {
-            const existingStudentCode = await User.findOne({ where: { studentCode } });
-            if (existingStudentCode) {
-                throw { statusCode: 409, message: 'Student code already exists' };
-            }
-        }
-
-        // Check if email already exists
-        const existingUser = await User.findOne({ where: { email } });
-        if (existingUser) {
-            throw { statusCode: 409, message: MSG.AUTH.EMAIL_EXISTS };
-        }
-
-        // Generate 6-digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-        // Calculate OTP expiration time
-        const otpExpireMinutes = parseInt(process.env.OTP_EXPIRE_MINUTES) || 10;
-        const otpExpires = new Date(Date.now() + otpExpireMinutes * 60 * 1000);
-
-        // Create new user with unverified email
-        const user = await User.create({
-            studentCode: studentCode || null,
-            fullName,
-            email,
-            passwordHash: password,
-            role: 'Student',
-            isEmailVerified: false,
-            otp,
-            otpExpires
-        });
-
-        // Send OTP email
         try {
-            await emailService.sendOTP(email, otp, fullName);
-        } catch (error) {
-            // If email fails, delete the user
-            await user.destroy();
-            throw { statusCode: 500, message: 'Failed to send OTP email. Please try again.' };
-        }
+            const { studentCode, fullName, email, password } = userData;
 
-        return {
-            message: `Registration successful! OTP has been sent to ${email}. Please verify within ${otpExpireMinutes} minute${otpExpireMinutes === 1 ? '' : 's'}.`,
-            email,
-            userId: user.userId
-        };
+            // Check if student code already exists (if provided)
+            if (studentCode) {
+                const existingStudentCode = await User.findOne({ where: { studentCode } });
+                if (existingStudentCode) {
+                    throw { statusCode: 409, message: 'Student code already exists' };
+                }
+            }
+
+            // Check if email already exists
+            const existingUser = await User.findOne({ where: { email } });
+            if (existingUser) {
+                throw { statusCode: 409, message: MSG.AUTH.EMAIL_EXISTS };
+            }
+
+            // Generate 6-digit OTP
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+            // Calculate OTP expiration time
+            const otpExpireMinutes = parseInt(process.env.OTP_EXPIRE_MINUTES) || 10;
+            const otpExpires = new Date(Date.now() + otpExpireMinutes * 60 * 1000);
+
+            // Create new user with unverified email
+            console.log('📝 Creating user with data:', { studentCode, fullName, email, role: 'student' });
+            
+            const user = await User.create({
+                studentCode: studentCode || null,
+                fullName,
+                email,
+                passwordHash: password,
+                role: 'student', // Match database enum values: student, lecturer, manager
+                isEmailVerified: false,
+                otp,
+                otpExpires
+            });
+
+            console.log('✅ User created successfully:', user.id);
+
+            // Send OTP email
+            try {
+                await emailService.sendOTP(email, otp, fullName);
+            } catch (error) {
+                console.error('❌ Email service error:', error);
+                // If email fails, delete the user
+                await user.destroy();
+                throw { statusCode: 500, message: 'Failed to send OTP email. Please try again.' };
+            }
+
+            return {
+                message: `Registration successful! OTP has been sent to ${email}. Please verify within ${otpExpireMinutes} minute${otpExpireMinutes === 1 ? '' : 's'}.`,
+                email,
+                userId: user.id
+            };
+        } catch (error) {
+            // Log the error
+            console.error('❌ RegisterUser service error:', error);
+            
+            // Re-throw if it's already a formatted error
+            if (error.statusCode) {
+                throw error;
+            }
+            
+            // Throw a generic error
+            throw { statusCode: 500, message: error.message || 'Registration failed' };
+        }
     }
 
     /**
@@ -74,11 +92,8 @@ class AuthService {
      * @returns {Object} - User and tokens
      */
     async verifyOTP(email, otp) {
-        console.log('🔍 Verifying OTP - email:', email, ', otp:', otp);
-        
         // Find user with email and OTP
         const user = await User.findOne({ where: { email: email } });
-        console.log('👤 User found:', user ? user.email : 'null');
 
         if (!user) {
             throw { statusCode: 404, message: 'User not found' };
@@ -172,8 +187,8 @@ class AuthService {
             throw { statusCode: 401, message: MSG.AUTH.INVALID_CREDENTIALS };
         }
 
-        // Check if email is verified (skip for Admin role)
-        if (!user.isEmailVerified && user.role !== 'Admin') {
+        // Check if email is verified (skip for MANAGER role)
+        if (!user.isEmailVerified && user.role !== 'MANAGER') {
             throw { statusCode: 403, message: 'Please verify your email before logging in' };
         }
 
@@ -202,10 +217,10 @@ class AuthService {
     }
 
     /**
-     * Admin/Lecturer Login with role validation
+     * Manager/Lecturer Login with role validation
      * @param {string} email - User email
      * @param {string} password - User password
-     * @param {string} requiredRole - Required role ('Admin' or 'Lecturer')
+     * @param {string} requiredRole - Required role ('MANAGER' or 'LECTURER')
      * @returns {Object} - User and tokens
      */
     async adminLecturerLogin(email, password, requiredRole) {
@@ -216,12 +231,12 @@ class AuthService {
         }
 
         // Check role authorization
-        if (user.role !== requiredRole && user.role !== 'Admin') {
-            throw { statusCode: 403, message: `Access denied. ${requiredRole} role required.` };
+        if (user.role !== requiredRole && user.role !== 'manager') {
+            throw { statusCode: 403, message: `Access denied. Only ${requiredRole} users can login here.` };
         }
 
-        // Check if email is verified (skip for Admin role)
-        if (!user.isEmailVerified && user.role !== 'Admin') {
+        // Check if email is verified (skip for manager role)
+        if (!user.isEmailVerified && user.role !== 'manager') {
             throw { statusCode: 403, message: 'Please verify your email before logging in' };
         }
 
@@ -303,7 +318,7 @@ class AuthService {
         // Generate new access token
         const accessToken = jwt.sign(
             {
-                userId: user.userId,
+                userId: user.id,
                 email: user.email,
                 role: user.role
             },
@@ -403,6 +418,39 @@ class AuthService {
         // Find user by email
         const user = await User.findOne({ where: { email } });
 
+        if (!user) {
+            throw { statusCode: 404, message: 'User not found' };
+        }
+
+        user.passwordHash = newPassword;
+        user.refreshToken = null;
+        await user.save();
+
+        return {
+            message: 'Password has been updated successfully.'
+        };
+    }
+
+    async changePassword(userId, currentPassword, newPassword) {
+        const user = await User.findByPk(userId);
+
+        if (!user) {
+            throw { statusCode: 404, message: 'User not found' };
+        }
+
+        const isPasswordValid = await user.comparePassword(currentPassword);
+        if (!isPasswordValid) {
+            throw { statusCode: 400, message: 'Current password is incorrect' };
+        }
+
+        user.passwordHash = newPassword;
+        user.refreshToken = null;
+        await user.save();
+
+        return {
+            message: 'Password changed successfully. Please login again.'
+        };
+
         // Don't reveal if user exists (security best practice)
         if (!user) {
             return;
@@ -422,7 +470,7 @@ class AuthService {
     generateTokens(user) {
         const accessToken = jwt.sign(
             {
-                userId: user.userId,
+                userId: user.id,
                 email: user.email,
                 role: user.role
             },
@@ -432,7 +480,7 @@ class AuthService {
 
         const refreshToken = jwt.sign(
             {
-                userId: user.userId
+                userId: user.id
             },
             jwtConfig.refreshSecret,
             { expiresIn: jwtConfig.refreshExpiresIn }

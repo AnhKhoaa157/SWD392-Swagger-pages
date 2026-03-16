@@ -4,6 +4,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { authenticate, authorize } = require('../middleware/auth.middleware');
 const {
     getAllGroups,
     getGroupById,
@@ -15,9 +16,9 @@ const {
     getGroupMembers
 } = require('../controllers/group.controller');
 
-router.route('/').get(getAllGroups).post(createGroup);
-router.route('/:id').get(getGroupById).put(updateGroup).delete(deleteGroup);
-router.route('/:id/members').get(getGroupMembers).post(addGroupMember);
-router.delete('/:id/members/:memberId', removeGroupMember);
+router.route('/').get(authenticate, getAllGroups).post(authenticate, authorize('student'), createGroup);
+router.route('/:id').get(authenticate, getGroupById).put(authenticate, authorize('student', 'lecturer', 'manager'), updateGroup).delete(authenticate, authorize('lecturer', 'manager'), deleteGroup);
+router.route('/:id/members').get(authenticate, getGroupMembers).post(authenticate, authorize('student'), addGroupMember);
+router.delete('/:id/members/:memberId', authenticate, authorize('student', 'lecturer', 'manager'), removeGroupMember);
 
 module.exports = router;

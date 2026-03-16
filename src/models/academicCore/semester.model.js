@@ -6,11 +6,10 @@ const { DataTypes } = require('sequelize');
 const { sequelize } = require('../../config/database.sequelize');
 
 const Semester = sequelize.define('Semester', {
-    semesterId: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
-        field: 'semester_id'
+    id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true
     },
     name: {
         type: DataTypes.STRING(50),

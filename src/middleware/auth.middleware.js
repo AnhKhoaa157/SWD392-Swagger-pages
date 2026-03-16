@@ -38,8 +38,8 @@ const authenticate = async (req, res, next) => {
                 });
             }
 
-            // Attach user to request
-            req.user = decoded; // Attach decoded token data (includes userId, email, role)
+            // Attach user to request (lấy thông tin user mới nhất từ DB)
+            req.user = user.toJSON();
             next();
         });
     } catch (error) {

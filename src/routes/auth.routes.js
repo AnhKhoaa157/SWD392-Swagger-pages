@@ -343,6 +343,8 @@ router.post('/verify-otp', authController.verifyOTP);
  */
 router.post('/resend-otp', authController.resendOTP);
 
+router.post('/change-password', authenticate, authController.changePassword);
+
 /**
  * @swagger
  * /api/auth/heartbeat:

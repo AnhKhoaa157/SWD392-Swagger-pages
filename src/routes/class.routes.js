@@ -10,11 +10,9 @@ const {
     getClassById,
     createClass,
     updateClass,
-    deleteClass,
-    addClassMember,
-    removeClassMember,
-    getClassMembers
+    deleteClass
 } = require('../controllers/class.controller');
+const { authenticate, authorize } = require('../middleware/auth.middleware');
 
 /**
  * @swagger
@@ -23,10 +21,10 @@ const {
  *     summary: Get all classes
  *     tags: [Classes]
  *   post:
- *     summary: Create new class
+ *     summary: Create new class (Manager only)
  *     tags: [Classes]
  */
-router.route('/').get(getAllClasses).post(createClass);
+router.route('/').get(authenticate, getAllClasses).post(authenticate, authorize('manager'), createClass);
 
 /**
  * @swagger
@@ -35,33 +33,12 @@ router.route('/').get(getAllClasses).post(createClass);
  *     summary: Get class by ID
  *     tags: [Classes]
  *   put:
- *     summary: Update class
+ *     summary: Update class (Manager only)
  *     tags: [Classes]
  *   delete:
- *     summary: Delete class
+ *     summary: Delete class (Manager only)
  *     tags: [Classes]
  */
-router.route('/:id').get(getClassById).put(updateClass).delete(deleteClass);
-
-/**
- * @swagger
- * /api/classes/{id}/members:
- *   get:
- *     summary: Get class members
- *     tags: [Classes]
- *   post:
- *     summary: Add member to class
- *     tags: [Classes]
- */
-router.route('/:id/members').get(getClassMembers).post(addClassMember);
-
-/**
- * @swagger
- * /api/classes/{id}/members/{memberId}:
- *   delete:
- *     summary: Remove member from class
- *     tags: [Classes]
- */
-router.delete('/:id/members/:memberId', removeClassMember);
+router.route('/:id').get(authenticate, getClassById).put(authenticate, authorize('manager'), updateClass).delete(authenticate, authorize('manager'), deleteClass);
 
 module.exports = router;

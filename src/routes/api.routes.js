@@ -1,17 +1,17 @@
 const express = require('express');
 const router = express.Router();
 
-// Import routes
+// Import routes (ONLY FOR 2 CORE BUSINESS FLOWS)
 const authRoutes = require('./auth.routes');
 const userRoutes = require('./user.routes');
 const semesterRoutes = require('./semester.routes');
 const classRoutes = require('./class.routes');
 const topicRoutes = require('./topic.routes');
 const groupRoutes = require('./group.routes');
-const milestoneRoutes = require('./milestone.routes');
+const questionRoutes = require('./question.routes');
+const answerRoutes = require('./answer.routes');
 const submissionRoutes = require('./submission.routes');
-const channelRoutes = require('./channel.routes');
-const messageRoutes = require('./message.routes');
+const taskRoutes = require('./task.routes');
 
 // Authentication routes
 router.use('/auth', authRoutes);
@@ -19,16 +19,20 @@ router.use('/auth', authRoutes);
 // User routes
 router.use('/users', userRoutes);
 
-// Academic Core routes
+// FLOW 1: Topic Management
 router.use('/semesters', semesterRoutes);
 router.use('/classes', classRoutes);
 router.use('/topics', topicRoutes);
 router.use('/groups', groupRoutes);
-router.use('/milestones', milestoneRoutes);
+
+// FLOW 2: Q&A Hierarchical System
+router.use('/questions', questionRoutes);
+router.use('/', answerRoutes); // Includes /questions/:id/answers and /answers/:id
+
+// FLOW 3: Submission Management
 router.use('/submissions', submissionRoutes);
 
-// Chat Engine routes
-router.use('/channels', channelRoutes);
-router.use('/messages', messageRoutes);
+// FLOW 4: Task Board Management
+router.use('/tasks', taskRoutes);
 
 module.exports = router;

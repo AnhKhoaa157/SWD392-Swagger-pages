@@ -1,41 +1,41 @@
 /**
- * Class Model (MySQL/Sequelize)
- * Represents a class/course section
+ * StudentGroup Model (MySQL/Sequelize)
+ * Represents student project groups
  */
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../../config/database.sequelize');
 
-const Class = sequelize.define('Class', {
+const StudentGroup = sequelize.define('StudentGroup', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
-    className: {
-        type: DataTypes.STRING(50),
+    groupName: {
+        type: DataTypes.STRING(100),
         allowNull: false,
         validate: {
-            notEmpty: { msg: 'Class name is required' }
+            notEmpty: { msg: 'Group name is required' }
         },
-        field: 'class_name'
+        field: 'group_name'
     },
-    semesterId: {
+    classId: {
         type: DataTypes.INTEGER,
         allowNull: true,
         references: {
-            model: 'semesters',
+            model: 'classes',
             key: 'id'
         },
-        field: 'semester_id'
+        field: 'class_id'
     },
-    lecturerId: {
+    topicId: {
         type: DataTypes.INTEGER,
         allowNull: true,
         references: {
-            model: 'users',
+            model: 'topics',
             key: 'id'
         },
-        field: 'lecturer_id'
+        field: 'topic_id'
     },
     createdAt: {
         type: DataTypes.DATE,
@@ -43,12 +43,12 @@ const Class = sequelize.define('Class', {
         field: 'created_at'
     }
 }, {
-    tableName: 'classes',
+    tableName: 'student_groups',
     timestamps: false,
     indexes: [
-        { fields: ['semester_id'] },
-        { fields: ['lecturer_id'] }
+        { fields: ['class_id'] },
+        { fields: ['topic_id'] }
     ]
 });
 
-module.exports = Class;
+module.exports = StudentGroup;

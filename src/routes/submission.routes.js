@@ -1,5 +1,6 @@
 /**
  * Submission Routes
+ * API endpoints for assignment submissions
  */
 
 const express = require('express');
@@ -12,9 +13,13 @@ const {
     deleteSubmission,
     gradeSubmission
 } = require('../controllers/submission.controller');
+const { authenticate, authorize } = require('../middleware/auth.middleware');
 
-router.route('/').get(getAllSubmissions).post(createSubmission);
-router.route('/:id').get(getSubmissionById).put(updateSubmission).delete(deleteSubmission);
-router.put('/:id/grade', gradeSubmission);
+router.get('/', authenticate, getAllSubmissions);
+router.get('/:id', authenticate, getSubmissionById);
+router.post('/', authenticate, authorize('student'), createSubmission);
+router.put('/:id', authenticate, authorize('student'), updateSubmission);
+router.delete('/:id', authenticate, authorize('student'), deleteSubmission);
+router.put('/:id/grade', authenticate, authorize('lecturer', 'manager'), gradeSubmission);
 
 module.exports = router;

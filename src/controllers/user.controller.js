@@ -33,8 +33,8 @@ class UserController {
         try {
             const user = await userService.getUserById(req.params.id);
 
-            // Check permission
-            if (!userService.canAccessUser(req.user, req.params.id)) {
+            // Check permission - managers can view any user, others only themselves
+            if (req.user.role !== 'manager' && req.user.userId !== parseInt(req.params.id)) {
                 return res.status(403).json({
                     success: false,
                     message: MSG.AUTHORIZATION.OWN_PROFILE_ONLY
@@ -150,8 +150,8 @@ class UserController {
                 });
             }
 
-            // Check permission to update - users can only update their own profile
-            if (req.user.role !== 'Admin' && req.user.userId !== userId) {
+            // Check permission to update - managers can update any profile, others only their own
+            if (req.user.role !== 'manager' && req.user.userId !== parseInt(userId)) {
                 return res.status(403).json({
                     success: false,
                     message: MSG.AUTHORIZATION.OWN_PROFILE_ONLY

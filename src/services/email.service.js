@@ -6,15 +6,21 @@ const nodemailer = require('nodemailer');
  */
 class EmailService {
     constructor() {
-        this.transporter = nodemailer.createTransport({
-            host: process.env.EMAIL_HOST,
-            port: process.env.EMAIL_PORT,
-            secure: false, // true for 465, false for other ports
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASSWORD
-            }
-        });
+        try {
+            this.transporter = nodemailer.createTransport({
+                host: process.env.EMAIL_HOST,
+                port: process.env.EMAIL_PORT,
+                secure: false, // true for 465, false for other ports
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASSWORD
+                }
+            });
+            console.log('✅ Email transporter initialized successfully');
+        } catch (error) {
+            console.error('❌ Email transporter initialization failed:', error);
+            this.transporter = null;
+        }
     }
 
     /**
@@ -24,6 +30,11 @@ class EmailService {
      * @param {string} name - User name
      */
     async sendOTP(email, otp, name) {
+        if (!this.transporter) {
+            console.error('❌ Email transporter not initialized');
+            throw new Error('Email service not available');
+        }
+        
         const mailOptions = {
             from: `"SWD392 System" <${process.env.EMAIL_FROM}>`,
             to: email,

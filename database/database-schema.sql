@@ -237,3 +237,10 @@ INSERT INTO submissions (id, group_id, submitted_by, milestone_name, file_url, f
 VALUES
 (1, 1, 4, 'Milestone 1', 'https://example.com/submissions/group1-ms1.zip', 'submissions/1/1/ms1.zip', 'Nộp đúng hạn', 'GRADED', 8.50, 'Triển khai tốt, cần cải thiện phần test.', 2, '2026-03-05 09:00:00', '2026-03-06 10:30:00'),
 (2, 2, 6, 'Milestone 1', 'https://example.com/submissions/group2-ms1.zip', 'submissions/2/2/ms1.zip', 'Đã cập nhật theo góp ý', 'SUBMITTED', NULL, NULL, NULL, '2026-03-07 14:15:00', NULL);
+
+-- Thêm Task Board mẫu
+INSERT INTO tasks (id, group_id, created_by, assignee_id, title, description, priority, status, tags, due_date, created_at, updated_at)
+VALUES
+(1, 1, 4, 5, 'Thiết kế database schema', 'Hoàn thiện bảng và quan hệ cho hệ thống quản lý đồ án.', 'HIGH', 'IN_PROGRESS', '["database","backend"]', '2026-03-18 17:00:00', '2026-03-10 09:00:00', '2026-03-10 09:00:00'),
+(2, 1, 4, 4, 'Chuẩn bị milestone demo', 'Tổng hợp tính năng chính để demo cho giảng viên.', 'MEDIUM', 'TODO', '["demo","planning"]', '2026-03-20 10:00:00', '2026-03-11 14:00:00', '2026-03-11 14:00:00'),
+(3, 2, 6, 7, 'Tối ưu giao diện Flutter', 'Rà soát lại màn hình chính và luồng đăng nhập.', 'LOW', 'REVIEW', '["flutter","ui"]', '2026-03-19 15:30:00', '2026-03-12 08:30:00', '2026-03-12 08:30:00');

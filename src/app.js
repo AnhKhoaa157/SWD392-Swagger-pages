@@ -29,12 +29,12 @@ testConnection().then(async () => {
                 fullName: 'System Administrator',
                 email: adminEmail,
                 passwordHash: adminPassword, // Will be hashed via hook
-                role: 'Admin',
+                role: 'manager',  // Must match User model enum: student, lecturer, manager
                 isEmailVerified: true, // Admin account is pre-verified
                 isOnline: false, // Default to offline, will be online after login
                 status: 'Offline'
             });
-            console.log(`✅ Default admin created: ${adminEmail} / ${adminPassword}`);
+            console.log(`✅ Default admin created: ${adminEmail}`);
         } else if (!adminExists.isEmailVerified) {
             // Update existing admin if not verified (from previous migrations)
             adminExists.isEmailVerified = true;

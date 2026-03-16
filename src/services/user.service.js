@@ -14,12 +14,12 @@ class UserService {
      * @returns {boolean} - True if access is allowed
      */
     canAccessUser(currentUser, targetUserId) {
-        // Admin can access any profile
-        if (currentUser.role === 'Admin') {
+        // Manager can access any profile
+        if (currentUser.role === 'manager') {
             return true;
         }
         // Users can only access their own profile
-        return currentUser.userId === targetUserId;
+        return currentUser.userId === parseInt(targetUserId);
     }
 
     /**
@@ -125,16 +125,17 @@ class UserService {
     }
 
     /**
-     * Update user role (Admin only)
+     * Update user role (Manager only)
      * @param {string} userId - User ID
-     * @param {string} newRole - New role (Student, Lecturer, Admin)
+     * @param {string} newRole - New role (student, lecturer, manager)
      * @returns {Object} - Updated user
      */
     async updateUserRole(userId, newRole) {
-        // Validate role
-        const validRoles = ['Student', 'Lecturer', 'Admin'];
-        if (!validRoles.includes(newRole)) {
-            throw { statusCode: 400, message: 'Invalid role. Must be Student, Lecturer, or Admin' };
+        // Validate role - use lowercase to match database
+        const validRoles = ['student', 'lecturer', 'manager'];
+        const normalizedRole = newRole.toLowerCase();
+        if (!validRoles.includes(normalizedRole)) {
+            throw { statusCode: 400, message: 'Invalid role. Must be student, lecturer, or manager' };
         }
 
         // Find user
@@ -143,8 +144,8 @@ class UserService {
             throw { statusCode: 404, message: MSG.USER.NOT_FOUND };
         }
 
-        // Update role
-        user.role = newRole;
+        // Update role (use lowercase)
+        user.role = normalizedRole;
         await user.save();
 
         return user.toJSON();

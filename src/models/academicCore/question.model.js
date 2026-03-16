@@ -1,11 +1,11 @@
 /**
- * Topic Model (MySQL/Sequelize)
- * Represents project topics proposed by lecturers
+ * Question Model (MySQL/Sequelize)
+ * Represents Q&A questions with hierarchical escalation
  */
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../../config/database.sequelize');
 
-const Topic = sequelize.define('Topic', {
+const Question = sequelize.define('Question', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -18,31 +18,34 @@ const Topic = sequelize.define('Topic', {
             notEmpty: { msg: 'Title is required' }
         }
     },
-    description: {
+    content: {
         type: DataTypes.TEXT,
-        allowNull: true
+        allowNull: false,
+        validate: {
+            notEmpty: { msg: 'Content is required' }
+        }
+    },
+    groupId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'student_groups',
+            key: 'id'
+        },
+        field: 'group_id'
+    },
+    askedBy: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'users',
+            key: 'id'
+        },
+        field: 'asked_by'
     },
     status: {
-        type: DataTypes.ENUM('PENDING', 'APPROVED', 'REJECTED'),
-        defaultValue: 'PENDING'
-    },
-    proposedBy: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: {
-            model: 'users',
-            key: 'id'
-        },
-        field: 'proposed_by'
-    },
-    approvedBy: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: {
-            model: 'users',
-            key: 'id'
-        },
-        field: 'approved_by'
+        type: DataTypes.ENUM('WAITING_LECTURER', 'ESCALATED_TO_MANAGER', 'RESOLVED'),
+        defaultValue: 'WAITING_LECTURER'
     },
     createdAt: {
         type: DataTypes.DATE,
@@ -50,13 +53,14 @@ const Topic = sequelize.define('Topic', {
         field: 'created_at'
     }
 }, {
-    tableName: 'topics',
+    tableName: 'questions',
     timestamps: false,
     indexes: [
+        { fields: ['group_id'] },
+        { fields: ['asked_by'] },
         { fields: ['status'] },
-        { fields: ['proposed_by'] },
-        { fields: ['approved_by'] }
+        { fields: ['created_at'] }
     ]
 });
 
-module.exports = Topic;
+module.exports = Question;

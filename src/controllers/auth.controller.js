@@ -52,6 +52,9 @@ class AuthController {
                 data: result
             });
         } catch (error) {
+            // Log error for debugging
+            console.error('❌ Registration error:', error);
+            
             // Handle service errors
             if (error.statusCode) {
                 return res.status(error.statusCode).json({
@@ -60,10 +63,19 @@ class AuthController {
                 });
             }
 
+            // Handle Sequelize validation errors
+            if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+                return res.status(400).json({
+                    success: false,
+                    message: error.errors ? error.errors[0].message : error.message
+                });
+            }
+
             res.status(500).json({
                 success: false,
                 message: MSG.GENERAL.SERVER_ERROR,
-                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
             });
         }
     }
@@ -313,10 +325,10 @@ class AuthController {
             }
 
             // Validate role
-            if (!['Admin', 'Lecturer'].includes(role)) {
+            if (!['manager', 'lecturer'].includes(role)) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Role must be either Admin or Lecturer'
+                    message: 'Role must be either manager or lecturer'
                 });
             }
 
@@ -384,14 +396,70 @@ class AuthController {
     // Heartbeat - cập nhật lastSeenAt để giữ trạng thái Online
     async heartbeat(req, res) {
         try {
-            const userId = req.user.userId;
-            await require('../models').User.update(
+            const userId = req.user?.userId || req.user?.id;
+            if (!userId) {
+                return res.status(401).json({ success: false, message: 'User not authenticated' });
+            }
+            const { User } = require('../models');
+            await User.update(
                 { lastSeenAt: new Date(), isOnline: true, status: 'Online' },
-                { where: { userId } }
+                { where: { id: userId } }
             );
             res.json({ success: true, message: 'Heartbeat received' });
         } catch (error) {
+            console.error('Heartbeat error:', error.message);
             res.status(500).json({ success: false, message: MSG.GENERAL.SERVER_ERROR });
+        }
+    }
+
+    async changePassword(req, res) {
+        try {
+            const { currentPassword, newPassword, confirmPassword } = req.body;
+
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Current password, new password, and confirmation are required'
+                });
+            }
+
+            if (newPassword.length < 6) {
+                return res.status(400).json({
+                    success: false,
+                    message: MSG.AUTH.PASSWORD_MIN_LENGTH
+                });
+            }
+
+            if (newPassword !== confirmPassword) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Password and confirm password do not match'
+                });
+            }
+
+            const result = await authService.changePassword(
+                req.user?.userId || req.user?.id,
+                currentPassword,
+                newPassword
+            );
+
+            res.json({
+                success: true,
+                data: result
+            });
+        } catch (error) {
+            if (error.statusCode) {
+                return res.status(error.statusCode).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+
+            res.status(500).json({
+                success: false,
+                message: MSG.GENERAL.SERVER_ERROR,
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
         }
     }
 }

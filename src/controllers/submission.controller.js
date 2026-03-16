@@ -1,313 +1,343 @@
 /**
  * Submission Controller
- * Handles CRUD operations for submissions
+ * Handles CRUD and grading operations for submissions
  */
 
-const { Submission, Group, Milestone, User } = require('../models');
+const { Submission, StudentGroup, User, Class } = require('../models');
 const { Op } = require('sequelize');
+const MSG = require('../constants/messages');
 
-/**
- * @desc    Get all submissions
- * @route   GET /api/submissions
- * @access  Public
- */
+const includeConfig = [
+    {
+        model: StudentGroup,
+        as: 'group',
+        attributes: ['id', 'groupName', 'classId', 'topicId'],
+        include: [{
+            model: Class,
+            as: 'class',
+            attributes: ['id', 'className', 'lecturerId']
+        }]
+    },
+    {
+        model: User,
+        as: 'submitter',
+        attributes: ['id', 'fullName', 'email', 'role']
+    },
+    {
+        model: User,
+        as: 'grader',
+        attributes: ['id', 'fullName', 'email', 'role']
+    }
+];
+
 const getAllSubmissions = async (req, res) => {
     try {
-        const { groupId, milestoneId, status, search } = req.query;
-        
-        let whereClause = {};
-        
+        const { groupId, classId, submittedBy, status, gradedBy, search, page = 1, limit = 20 } = req.query;
+        const whereClause = {};
+
         if (groupId) whereClause.groupId = groupId;
-        if (milestoneId) whereClause.milestoneId = milestoneId;
-        if (status) whereClause.status = status;
+        if (submittedBy) whereClause.submittedBy = submittedBy;
+        if (status) whereClause.status = String(status).toUpperCase();
+        if (gradedBy) whereClause.gradedBy = gradedBy;
         if (search) {
             whereClause[Op.or] = [
-                { linkRepo: { [Op.like]: `%${search}%` } },
-                { description: { [Op.like]: `%${search}%` } }
+                { milestoneName: { [Op.like]: `%${search}%` } },
+                { notes: { [Op.like]: `%${search}%` } },
+                { feedback: { [Op.like]: `%${search}%` } }
             ];
         }
-        
-        const submissions = await Submission.findAll({
+
+        const parsedPage = Math.max(Number(page) || 1, 1);
+        const parsedLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
+        const offset = (parsedPage - 1) * parsedLimit;
+
+        const include = includeConfig.map((item) => ({ ...item }));
+        if (classId) {
+            include[0] = {
+                ...include[0],
+                where: { classId }
+            };
+        }
+
+        const { rows, count } = await Submission.findAndCountAll({
             where: whereClause,
-            include: [
-                {
-                    model: Group,
-                    as: 'group',
-                    attributes: ['groupId', 'groupName', 'classId']
-                },
-                {
-                    model: Milestone,
-                    as: 'milestone',
-                    attributes: ['milestoneId', 'name', 'deadline', 'weight']
-                },
-                {
-                    model: User,
-                    as: 'grader',
-                    attributes: ['userId', 'fullName', 'email']
-                }
-            ],
-            order: [['submissionAt', 'DESC']]
+            include,
+            order: [['submittedAt', 'DESC']],
+            limit: parsedLimit,
+            offset
         });
-        
+
         res.status(200).json({
             success: true,
-            count: submissions.length,
-            data: submissions
+            message: MSG.GENERAL.SUCCESS,
+            count,
+            page: parsedPage,
+            limit: parsedLimit,
+            data: rows
         });
     } catch (error) {
         console.error('Error fetching submissions:', error);
         res.status(500).json({
             success: false,
-            message: 'Error fetching submissions',
-            error: error.message
+            message: MSG.GENERAL.SERVER_ERROR,
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            errorName: process.env.NODE_ENV === 'development' ? error.name : undefined,
+            errorStack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };
 
-/**
- * @desc    Get submission by ID
- * @route   GET /api/submissions/:id
- * @access  Public
- */
 const getSubmissionById = async (req, res) => {
     try {
         const { id } = req.params;
-        
-        const submission = await Submission.findByPk(id, {
-            include: [
-                {
-                    model: Group,
-                    as: 'group'
-                },
-                {
-                    model: Milestone,
-                    as: 'milestone'
-                },
-                {
-                    model: User,
-                    as: 'grader',
-                    attributes: ['userId', 'fullName', 'email', 'role']
-                }
-            ]
-        });
-        
+        const submission = await Submission.findByPk(id, { include: includeConfig });
+
         if (!submission) {
             return res.status(404).json({
                 success: false,
-                message: 'Submission not found'
+                message: MSG.GENERAL.NOT_FOUND,
+                detail: 'Submission not found'
             });
         }
-        
+
         res.status(200).json({
             success: true,
+            message: MSG.GENERAL.SUCCESS,
             data: submission
         });
     } catch (error) {
         console.error('Error fetching submission:', error);
         res.status(500).json({
             success: false,
-            message: 'Error fetching submission',
-            error: error.message
+            message: MSG.GENERAL.SERVER_ERROR,
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            errorName: process.env.NODE_ENV === 'development' ? error.name : undefined,
+            errorStack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };
 
-/**
- * @desc    Create new submission
- * @route   POST /api/submissions
- * @access  Student (Group Member)
- */
 const createSubmission = async (req, res) => {
     try {
-        const { groupId, milestoneId, linkRepo, description } = req.body;
-        
-        if (!groupId || !milestoneId) {
+        const { groupId, milestoneName, fileUrl, filePath, notes } = req.body;
+        const submittedBy = req.user?.userId;
+
+        if (!groupId) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide groupId and milestoneId'
+                message: MSG.GENERAL.BAD_REQUEST,
+                detail: 'Missing groupId'
             });
         }
-        
-        // Verify group exists
-        const group = await Group.findByPk(groupId);
+
+        if (!fileUrl && !filePath) {
+            return res.status(400).json({
+                success: false,
+                message: MSG.GENERAL.BAD_REQUEST,
+                detail: 'Missing fileUrl or filePath'
+            });
+        }
+
+        const group = await StudentGroup.findByPk(groupId);
         if (!group) {
             return res.status(404).json({
                 success: false,
-                message: 'Group not found'
+                message: MSG.GENERAL.NOT_FOUND,
+                detail: 'Group not found'
             });
         }
-        
-        // Verify milestone exists
-        const milestone = await Milestone.findByPk(milestoneId);
-        if (!milestone) {
-            return res.status(404).json({
-                success: false,
-                message: 'Milestone not found'
-            });
-        }
-        
-        // Check if submission already exists
-        const existingSubmission = await Submission.findOne({
-            where: { groupId, milestoneId }
-        });
-        
-        if (existingSubmission) {
-            return res.status(409).json({
-                success: false,
-                message: 'Submission already exists for this milestone'
-            });
-        }
-        
-        // Check if past deadline
-        const isLate = new Date() > new Date(milestone.deadline);
-        
+
         const submission = await Submission.create({
             groupId,
-            milestoneId,
-            linkRepo,
-            description,
-            status: isLate ? 'Late' : 'Submitted',
-            submissionAt: new Date()
+            submittedBy,
+            milestoneName,
+            fileUrl,
+            filePath,
+            notes,
+            status: 'SUBMITTED'
         });
-        
+
+        const created = await Submission.findByPk(submission.id, { include: includeConfig });
+
         res.status(201).json({
             success: true,
-            message: 'Submission created successfully',
-            data: submission
+            message: MSG.GENERAL.SUCCESS,
+            data: created
         });
     } catch (error) {
         console.error('Error creating submission:', error);
         res.status(500).json({
             success: false,
-            message: 'Error creating submission',
-            error: error.message
+            message: MSG.GENERAL.SERVER_ERROR,
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            errorName: process.env.NODE_ENV === 'development' ? error.name : undefined,
+            errorStack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };
 
-/**
- * @desc    Update submission
- * @route   PUT /api/submissions/:id
- * @access  Student (Group Member)
- */
 const updateSubmission = async (req, res) => {
     try {
         const { id } = req.params;
-        const updates = req.body;
-        
+        const { milestoneName, fileUrl, filePath, notes } = req.body;
+        const requesterId = req.user?.userId;
+        const requesterRole = String(req.user?.role || '').toLowerCase();
+
         const submission = await Submission.findByPk(id);
-        
         if (!submission) {
             return res.status(404).json({
                 success: false,
-                message: 'Submission not found'
+                message: MSG.GENERAL.NOT_FOUND,
+                detail: 'Submission not found'
             });
         }
-        
-        // Don't allow updates if already graded
-        if (submission.status === 'Graded') {
+
+        if (String(submission.status || '').toUpperCase() === 'GRADED') {
             return res.status(400).json({
                 success: false,
-                message: 'Cannot update graded submission'
+                message: MSG.GENERAL.BAD_REQUEST,
+                detail: 'Graded submissions cannot be updated'
             });
         }
-        
-        await submission.update(updates);
-        
+
+        if (requesterRole === 'student' && Number(submission.submittedBy) !== Number(requesterId)) {
+            return res.status(403).json({
+                success: false,
+                message: MSG.GENERAL.BAD_REQUEST,
+                detail: 'You can only update your own submission'
+            });
+        }
+
+        if (milestoneName !== undefined) submission.milestoneName = milestoneName;
+        if (fileUrl !== undefined) submission.fileUrl = fileUrl;
+        if (filePath !== undefined) submission.filePath = filePath;
+        if (notes !== undefined) submission.notes = notes;
+
+        await submission.save();
+
+        const updated = await Submission.findByPk(id, { include: includeConfig });
+
         res.status(200).json({
             success: true,
-            message: 'Submission updated successfully',
-            data: submission
+            message: MSG.GENERAL.SUCCESS,
+            data: updated
         });
     } catch (error) {
         console.error('Error updating submission:', error);
         res.status(500).json({
             success: false,
-            message: 'Error updating submission',
-            error: error.message
+            message: MSG.GENERAL.SERVER_ERROR,
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            errorName: process.env.NODE_ENV === 'development' ? error.name : undefined,
+            errorStack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };
 
-/**
- * @desc    Delete submission
- * @route   DELETE /api/submissions/:id
- * @access  Lecturer/Admin
- */
 const deleteSubmission = async (req, res) => {
     try {
         const { id } = req.params;
-        
+        const requesterId = req.user?.userId;
+        const requesterRole = String(req.user?.role || '').toLowerCase();
+
         const submission = await Submission.findByPk(id);
-        
         if (!submission) {
             return res.status(404).json({
                 success: false,
-                message: 'Submission not found'
+                message: MSG.GENERAL.NOT_FOUND,
+                detail: 'Submission not found'
             });
         }
-        
+
+        if (String(submission.status || '').toUpperCase() === 'GRADED') {
+            return res.status(400).json({
+                success: false,
+                message: MSG.GENERAL.BAD_REQUEST,
+                detail: 'Graded submissions cannot be deleted'
+            });
+        }
+
+        if (requesterRole === 'student' && Number(submission.submittedBy) !== Number(requesterId)) {
+            return res.status(403).json({
+                success: false,
+                message: MSG.GENERAL.BAD_REQUEST,
+                detail: 'You can only delete your own submission'
+            });
+        }
+
         await submission.destroy();
-        
+
         res.status(200).json({
             success: true,
-            message: 'Submission deleted successfully'
+            message: MSG.GENERAL.SUCCESS
         });
     } catch (error) {
         console.error('Error deleting submission:', error);
         res.status(500).json({
             success: false,
-            message: 'Error deleting submission',
-            error: error.message
+            message: MSG.GENERAL.SERVER_ERROR,
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            errorName: process.env.NODE_ENV === 'development' ? error.name : undefined,
+            errorStack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };
 
-/**
- * @desc    Grade submission
- * @route   PUT /api/submissions/:id/grade
- * @access  Lecturer
- */
 const gradeSubmission = async (req, res) => {
     try {
         const { id } = req.params;
-        const { grade, feedback, gradedBy } = req.body;
-        
-        if (grade === undefined || !gradedBy) {
+        const { grade, feedback } = req.body;
+        const gradedBy = req.user?.userId;
+
+        if (grade === undefined || grade === null || Number.isNaN(Number(grade))) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide grade and gradedBy'
+                message: MSG.GENERAL.BAD_REQUEST,
+                detail: 'Missing or invalid grade'
             });
         }
-        
+
+        const normalizedGrade = Number(grade);
+        if (normalizedGrade < 0 || normalizedGrade > 10) {
+            return res.status(400).json({
+                success: false,
+                message: MSG.GENERAL.BAD_REQUEST,
+                detail: 'Grade must be between 0 and 10'
+            });
+        }
+
         const submission = await Submission.findByPk(id);
-        
         if (!submission) {
             return res.status(404).json({
                 success: false,
-                message: 'Submission not found'
+                message: MSG.GENERAL.NOT_FOUND,
+                detail: 'Submission not found'
             });
         }
-        
-        submission.grade = grade;
-        submission.feedback = feedback;
+
+        submission.grade = normalizedGrade;
+        submission.feedback = feedback || null;
         submission.gradedBy = gradedBy;
         submission.gradedAt = new Date();
-        submission.status = 'Graded';
-        
+        submission.status = 'GRADED';
+
         await submission.save();
-        
+
+        const graded = await Submission.findByPk(id, { include: includeConfig });
+
         res.status(200).json({
             success: true,
-            message: 'Submission graded successfully',
-            data: submission
+            message: MSG.GENERAL.SUCCESS,
+            data: graded
         });
     } catch (error) {
         console.error('Error grading submission:', error);
         res.status(500).json({
             success: false,
-            message: 'Error grading submission',
-            error: error.message
+            message: MSG.GENERAL.SERVER_ERROR,
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            errorName: process.env.NODE_ENV === 'development' ? error.name : undefined,
+            errorStack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };

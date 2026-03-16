@@ -13,9 +13,7 @@ const {
     deleteSemester,
     getActiveSemester
 } = require('../controllers/semester.controller');
-
-// Import auth middleware (will be implemented later)
-// const { authenticateToken, authorizeRoles } = require('../middleware/auth.middleware');
+const { authenticate, authorize } = require('../middleware/auth.middleware');
 
 /**
  * @swagger
@@ -37,7 +35,7 @@ const {
  *       200:
  *         description: List of semesters
  */
-router.get('/', getAllSemesters);
+router.get('/', authenticate, getAllSemesters);
 
 /**
  * @swagger
@@ -49,7 +47,7 @@ router.get('/', getAllSemesters);
  *       200:
  *         description: Active semester details
  */
-router.get('/active', getActiveSemester);
+router.get('/active', authenticate, getActiveSemester);
 
 /**
  * @swagger
@@ -69,88 +67,42 @@ router.get('/active', getActiveSemester);
  *       404:
  *         description: Semester not found
  */
-router.get('/:id', getSemesterById);
+router.get('/:id', authenticate, getSemesterById);
 
 /**
  * @swagger
  * /api/semesters:
  *   post:
- *     summary: Create new semester
+ *     summary: Create new semester (Manager only)
  *     tags: [Semesters]
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - startDate
- *               - endDate
- *             properties:
- *               name:
- *                 type: string
- *               startDate:
- *                 type: string
- *                 format: date
- *               endDate:
- *                 type: string
- *                 format: date
- *               status:
- *                 type: string
- *                 enum: [Upcoming, Active, Completed]
  *     responses:
  *       201:
- *         description: Semester created successfully
+ *         description: Semester created
  */
-router.post('/', createSemester); // Add authentication: authenticateToken, authorizeRoles('Admin')
+router.post('/', authenticate, authorize('manager'), createSemester);
 
 /**
  * @swagger
  * /api/semesters/{id}:
  *   put:
- *     summary: Update semester
+ *     summary: Update semester (Manager only)
  *     tags: [Semesters]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *     responses:
- *       200:
- *         description: Semester updated successfully
  */
-router.put('/:id', updateSemester); // Add authentication: authenticateToken, authorizeRoles('Admin')
+router.put('/:id', authenticate, authorize('manager'), updateSemester);
 
 /**
  * @swagger
  * /api/semesters/{id}:
  *   delete:
- *     summary: Delete semester
+ *     summary: Delete semester (Manager only)
  *     tags: [Semesters]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Semester deleted successfully
  */
-router.delete('/:id', deleteSemester); // Add authentication: authenticateToken, authorizeRoles('Admin')
+router.delete('/:id', authenticate, authorize('manager'), deleteSemester);
 
 module.exports = router;

@@ -41,7 +41,7 @@ const { authenticate, authorize } = require('../middleware/auth.middleware');
  *       403:
  *         description: Forbidden - admin access required
  */
-router.get('/', authenticate, authorize('admin'), userController.getAllUsers);
+router.get('/', authenticate, authorize('manager'), userController.getAllUsers);
 
 /**
  * @swagger
@@ -156,7 +156,7 @@ router.get('/:id', authenticate, userController.getUserById);
  *       409:
  *         description: Email or student code already exists
  */
-router.post('/', authenticate, authorize('admin'), userController.createUser);
+router.post('/', authenticate, authorize('manager'), userController.createUser);
 
 /**
  * @swagger
@@ -266,7 +266,7 @@ router.put('/:id', authenticate, userController.updateUser);
  *       404:
  *         description: User not found
  */
-router.patch('/:id/role', authenticate, authorize('admin'), userController.updateUserRole);
+router.patch('/:id/role', authenticate, authorize('manager'), userController.updateUserRole);
 
 /**
  * @swagger
@@ -293,6 +293,6 @@ router.patch('/:id/role', authenticate, authorize('admin'), userController.updat
  *       404:
  *         description: User not found
  */
-router.delete('/:id', authenticate, authorize('admin'), userController.deleteUser);
+router.delete('/:id', authenticate, authorize('manager'), userController.deleteUser);
 
 module.exports = router;

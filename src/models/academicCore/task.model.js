@@ -1,11 +1,11 @@
 /**
- * Submission Model (MySQL/Sequelize)
- * Represents group assignment submissions
+ * Task Model (MySQL/Sequelize)
+ * Represents group task board items
  */
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../../config/database.sequelize');
 
-const Submission = sequelize.define('Submission', {
+const Task = sequelize.define('Task', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -20,64 +20,50 @@ const Submission = sequelize.define('Submission', {
         },
         field: 'group_id'
     },
-    submittedBy: {
+    createdBy: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
             model: 'users',
             key: 'id'
         },
-        field: 'submitted_by'
+        field: 'created_by'
     },
-    milestoneName: {
-        type: DataTypes.STRING(100),
-        allowNull: true,
-        field: 'milestone_name'
-    },
-    fileUrl: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-        field: 'file_url'
-    },
-    filePath: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-        field: 'file_path'
-    },
-    notes: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
-    status: {
-        type: DataTypes.ENUM('SUBMITTED', 'GRADED'),
-        defaultValue: 'SUBMITTED'
-    },
-    grade: {
-        type: DataTypes.DECIMAL(5, 2),
-        allowNull: true
-    },
-    feedback: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
-    gradedBy: {
+    assigneeId: {
         type: DataTypes.INTEGER,
         allowNull: true,
         references: {
             model: 'users',
             key: 'id'
         },
-        field: 'graded_by'
+        field: 'assignee_id'
     },
-    submittedAt: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
-        field: 'submitted_at'
+    title: {
+        type: DataTypes.STRING(255),
+        allowNull: false
     },
-    gradedAt: {
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    priority: {
+        type: DataTypes.ENUM('LOW', 'MEDIUM', 'HIGH'),
+        allowNull: false,
+        defaultValue: 'MEDIUM'
+    },
+    status: {
+        type: DataTypes.ENUM('TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'),
+        allowNull: false,
+        defaultValue: 'TODO'
+    },
+    tags: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    dueDate: {
         type: DataTypes.DATE,
         allowNull: true,
-        field: 'graded_at'
+        field: 'due_date'
     },
     createdAt: {
         type: DataTypes.DATE,
@@ -90,16 +76,18 @@ const Submission = sequelize.define('Submission', {
         field: 'updated_at'
     }
 }, {
-    tableName: 'submissions',
+    tableName: 'tasks',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
     indexes: [
         { fields: ['group_id'] },
-        { fields: ['submitted_by'] },
+        { fields: ['created_by'] },
+        { fields: ['assignee_id'] },
         { fields: ['status'] },
-        { fields: ['graded_by'] }
+        { fields: ['priority'] },
+        { fields: ['due_date'] }
     ]
 });
 
-module.exports = Submission;
+module.exports = Task;
