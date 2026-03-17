@@ -173,7 +173,9 @@ NODE_ENV=development
 PORT=5000
 
 # CORS
-CORS_ORIGIN=http://localhost:3000
+# Comma-separated list for explicit allowlist (optional).
+# Vercel preview/production domains are also accepted automatically.
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175,https://your-production-frontend.vercel.app
 ```
 
 ### 5. Seed Sample Data (Optional)
@@ -208,6 +210,12 @@ npm test
 ```
 
 Server runs on: `http://localhost:5000`
+
+## Deployment Notes
+
+- Render backend now accepts localhost origins, any origins listed in `CORS_ALLOWED_ORIGINS`, and secure Vercel preview/production domains (`https://*.vercel.app`).
+- If you use a custom frontend domain, add it to `CORS_ALLOWED_ORIGINS` in Render.
+- After changing environment variables on Render, trigger a redeploy so preflight requests use the new CORS policy.
 
 ## Quick Start
 ```bash
