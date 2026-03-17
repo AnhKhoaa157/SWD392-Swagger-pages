@@ -63,7 +63,10 @@ class AuthService {
                 console.error('❌ Email service error:', error);
                 // If email fails, delete the user
                 await user.destroy();
-                throw { statusCode: 500, message: 'Failed to send OTP email. Please try again.' };
+                throw {
+                    statusCode: error.statusCode || 503,
+                    message: error.message || 'Failed to send OTP email. Please try again.'
+                };
             }
 
             return {

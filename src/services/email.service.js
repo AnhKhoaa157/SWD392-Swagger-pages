@@ -2,6 +2,13 @@ const nodemailer = require('nodemailer');
 
 const DEFAULT_EMAIL_TIMEOUT_MS = parseInt(process.env.EMAIL_TIMEOUT_MS, 10) || 10000;
 
+const createEmailError = (message, code = 'EMAIL_DELIVERY_FAILED', statusCode = 503) => {
+    const error = new Error(message);
+    error.code = code;
+    error.statusCode = statusCode;
+    return error;
+};
+
 const withTimeout = async (promise, timeoutMs, label) => {
     let timeoutId;
 
@@ -25,12 +32,18 @@ const withTimeout = async (promise, timeoutMs, label) => {
  */
 class EmailService {
     constructor() {
+        this.initError = null;
+
         try {
             const requiredEnvVars = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASSWORD', 'EMAIL_FROM'];
             const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
 
             if (missingEnvVars.length > 0) {
-                throw new Error(`Missing email configuration: ${missingEnvVars.join(', ')}`);
+                throw createEmailError(
+                    `Missing email configuration: ${missingEnvVars.join(', ')}`,
+                    'EMAIL_NOT_CONFIGURED',
+                    503
+                );
             }
 
             this.transporter = nodemailer.createTransport({
@@ -48,6 +61,7 @@ class EmailService {
             console.log('✅ Email transporter initialized successfully');
         } catch (error) {
             console.error('❌ Email transporter initialization failed:', error);
+            this.initError = error;
             this.transporter = null;
         }
     }
@@ -60,8 +74,13 @@ class EmailService {
      */
     async sendOTP(email, otp, name) {
         if (!this.transporter) {
-            console.error('❌ Email transporter not initialized');
-            throw new Error('Email service not available');
+            const initMessage = this.initError?.message || 'Email service is not configured';
+            console.error('❌ Email transporter not initialized:', initMessage);
+            throw createEmailError(
+                `OTP email service is unavailable. ${initMessage}`,
+                this.initError?.code || 'EMAIL_NOT_CONFIGURED',
+                this.initError?.statusCode || 503
+            );
         }
         
         const mailOptions = {
@@ -102,7 +121,10 @@ class EmailService {
             return { success: true, messageId: info.messageId };
         } catch (error) {
             console.error(`❌ Failed to send OTP email to ${email}:`, error.message);
-            throw new Error('Failed to send OTP email');
+            if (error.message.includes('timed out')) {
+                throw createEmailError('OTP email delivery timed out. Please try again in a moment.', 'EMAIL_TIMEOUT', 504);
+            }
+            throw createEmailError('Failed to send OTP email. Please verify SMTP settings on server.', 'EMAIL_DELIVERY_FAILED', 503);
         }
     }
 
@@ -113,6 +135,15 @@ class EmailService {
      * @param {string} name - User name
      */
     async sendPasswordResetOTP(email, otp, name) {
+        if (!this.transporter) {
+            const initMessage = this.initError?.message || 'Email service is not configured';
+            throw createEmailError(
+                `Password reset email service is unavailable. ${initMessage}`,
+                this.initError?.code || 'EMAIL_NOT_CONFIGURED',
+                this.initError?.statusCode || 503
+            );
+        }
+
         const mailOptions = {
             from: `"SWD392 System" <${process.env.EMAIL_FROM}>`,
             to: email,
@@ -151,7 +182,10 @@ class EmailService {
             return { success: true, messageId: info.messageId };
         } catch (error) {
             console.error(`❌ Failed to send password reset OTP to ${email}:`, error.message);
-            throw new Error('Failed to send password reset OTP');
+            if (error.message.includes('timed out')) {
+                throw createEmailError('Password reset email delivery timed out. Please try again in a moment.', 'EMAIL_TIMEOUT', 504);
+            }
+            throw createEmailError('Failed to send password reset OTP. Please verify SMTP settings on server.', 'EMAIL_DELIVERY_FAILED', 503);
         }
     }
 
