@@ -176,6 +176,14 @@ PORT=5000
 # Comma-separated list for explicit allowlist (optional).
 # Vercel preview/production domains are also accepted automatically.
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175,https://your-production-frontend.vercel.app
+
+# Email / OTP delivery
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASSWORD=your_app_password
+EMAIL_FROM=your_email@gmail.com
+EMAIL_TIMEOUT_MS=10000
 ```
 
 ### 5. Seed Sample Data (Optional)
@@ -216,6 +224,7 @@ Server runs on: `http://localhost:5000`
 - Render backend now accepts localhost origins, any origins listed in `CORS_ALLOWED_ORIGINS`, and secure Vercel preview/production domains (`https://*.vercel.app`).
 - If you use a custom frontend domain, add it to `CORS_ALLOWED_ORIGINS` in Render.
 - After changing environment variables on Render, trigger a redeploy so preflight requests use the new CORS policy.
+- If registration hangs, check the SMTP variables above on Render. The backend now fails fast after `EMAIL_TIMEOUT_MS` instead of keeping the request open until the frontend times out.
 
 ## Quick Start
 ```bash

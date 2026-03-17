@@ -70,17 +70,17 @@ testConnection().then(async () => {
                 isOnline: false, // Default to offline, will be online after login
                 status: 'Offline'
             });
-            console.log(`✅ Default admin created: ${adminEmail}`);
+            console.log(`✅ Default manager created: ${adminEmail}`);
         } else if (!adminExists.isEmailVerified) {
-            // Update existing admin if not verified (from previous migrations)
+            // Update existing manager if not verified (from previous migrations)
             adminExists.isEmailVerified = true;
             await adminExists.save();
-            console.log(`✅ Existing admin email verified: ${adminEmail}`);
+            console.log(`✅ Existing manager email verified: ${adminEmail}`);
         } else {
-            console.log(`ℹ️  Admin already exists: ${adminEmail}`);
+            console.log(`ℹ️  Manager already exists: ${adminEmail}`);
         }
     } catch (err) {
-        console.error('❌ Failed to create default admin:', err.message);
+        console.error('❌ Failed to create default manager:', err.message);
     }
 }).catch(err => {
     console.error('❌ Database connection failed:', err);

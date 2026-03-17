@@ -1,5 +1,24 @@
 const nodemailer = require('nodemailer');
 
+const DEFAULT_EMAIL_TIMEOUT_MS = parseInt(process.env.EMAIL_TIMEOUT_MS, 10) || 10000;
+
+const withTimeout = async (promise, timeoutMs, label) => {
+    let timeoutId;
+
+    try {
+        return await Promise.race([
+            promise,
+            new Promise((_, reject) => {
+                timeoutId = setTimeout(() => {
+                    reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+                }, timeoutMs);
+            })
+        ]);
+    } finally {
+        clearTimeout(timeoutId);
+    }
+};
+
 /**
  * Email Service
  * Handles sending emails using nodemailer
@@ -7,10 +26,20 @@ const nodemailer = require('nodemailer');
 class EmailService {
     constructor() {
         try {
+            const requiredEnvVars = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASSWORD', 'EMAIL_FROM'];
+            const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
+
+            if (missingEnvVars.length > 0) {
+                throw new Error(`Missing email configuration: ${missingEnvVars.join(', ')}`);
+            }
+
             this.transporter = nodemailer.createTransport({
                 host: process.env.EMAIL_HOST,
-                port: process.env.EMAIL_PORT,
-                secure: false, // true for 465, false for other ports
+                port: Number(process.env.EMAIL_PORT),
+                secure: Number(process.env.EMAIL_PORT) === 465,
+                connectionTimeout: DEFAULT_EMAIL_TIMEOUT_MS,
+                greetingTimeout: DEFAULT_EMAIL_TIMEOUT_MS,
+                socketTimeout: DEFAULT_EMAIL_TIMEOUT_MS,
                 auth: {
                     user: process.env.EMAIL_USER,
                     pass: process.env.EMAIL_PASSWORD
@@ -64,7 +93,11 @@ class EmailService {
         };
 
         try {
-            const info = await this.transporter.sendMail(mailOptions);
+            const info = await withTimeout(
+                this.transporter.sendMail(mailOptions),
+                DEFAULT_EMAIL_TIMEOUT_MS,
+                'OTP email send'
+            );
             console.log(`✓ OTP email sent to ${email}: ${info.messageId}`);
             return { success: true, messageId: info.messageId };
         } catch (error) {
@@ -109,7 +142,11 @@ class EmailService {
         };
 
         try {
-            const info = await this.transporter.sendMail(mailOptions);
+            const info = await withTimeout(
+                this.transporter.sendMail(mailOptions),
+                DEFAULT_EMAIL_TIMEOUT_MS,
+                'Password reset email send'
+            );
             console.log(`✓ Password reset OTP sent to ${email}: ${info.messageId}`);
             return { success: true, messageId: info.messageId };
         } catch (error) {
@@ -145,7 +182,11 @@ class EmailService {
         };
 
         try {
-            const info = await this.transporter.sendMail(mailOptions);
+            const info = await withTimeout(
+                this.transporter.sendMail(mailOptions),
+                DEFAULT_EMAIL_TIMEOUT_MS,
+                'Welcome email send'
+            );
             console.log(`✓ Welcome email sent to ${email}: ${info.messageId}`);
             return { success: true, messageId: info.messageId };
         } catch (error) {
